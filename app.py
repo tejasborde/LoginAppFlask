@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, current_user, login_required, logout_user
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:12345@127.0.0.1:5432/loginapp'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:12345678@127.0.0.1:5432/loginapp'
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 app.config["SERVER_MODE"] = True
@@ -37,9 +37,7 @@ class Customer(UserMixin,db.Model):
 def load_user(id):
     return Customer.query.get(int(id))
     
-# @app.route('/')
-# def loggedOut():
-#     return render_template('index.html')
+
 @app.route('/')
 def loggedOut():
     if(current_user.is_authenticated):
@@ -50,16 +48,12 @@ def loggedOut():
 @ login_required
 def welcome():
     if(current_user.is_authenticated):
-        return render_template('welcome.html', name=current_user.name)
+        return render_template('welcome.html', name=current_user.name,user=current_user)
     return redirect(url_for('loggedOut'))
 
 
 
-# @ app.route('/login_page')
-# def login_page():
-#     if(current_user.is_authenticated):
-#         return redirect(url_for('welcome'))
-#     return render_template("login.html")
+
 
 @ app.route('/login', methods=["GET", "POST"])
 def login():
@@ -67,7 +61,8 @@ def login():
 
         u = Customer.query.filter_by(email=request.form.get('email')).first()
         if(u == None):
-            return redirect(url_for('loggedOut'),error="Invalid username or password")
+            flash("LOGIN FAILED !! INCORRECT USERNAME OR PASSWORD", "danger")
+            return redirect(url_for('loggedOut'))
         if(u.password == request.form.get('password')):
             login_user(u)
             flash("LOGIN SUCCESSFULL", "success")
@@ -86,10 +81,33 @@ def logout():
     flash("LOGOUT SUCCESSFULLY", "success")
     return redirect(url_for('loggedOut'))
 
-# @app.route("/addperson")
-# def addperson():
-#     return render_template("register.html")
+def validate_password(password):
+    Capi_alpha = 0
+    small_alpha = 0
+    num = 0
+    Spe_char = ['@', '#', '%', '&', '?']
+    Spe_count = 0
+    valid = False
+    for i in password:
+        if(ord(i) >= 65 and ord(i) <= 90):
+            Capi_alpha += 1
+        elif(i in Spe_char):
+            Spe_count += 1
+        elif(ord(i) >= 48 and ord(i) <= 57):
+            num += 1
+        elif(ord(i) >= 97 and ord(i) <= 122):
+            small_alpha += 1
+        else:
+            pass
 
+    if(len(password) >= 8):
+        if(Capi_alpha > 0):
+            if(small_alpha > 0):
+                if(Spe_count > 0):
+                    if(num > 0):
+                        valid = True
+
+    return valid
 
 @app.route("/register", methods=['POST'])
 def register():
@@ -97,10 +115,20 @@ def register():
     password = request.form["password"]
     email = request.form["email"]
     gender = request.form["gender"]
-    entry = Customer(name,password,email,gender)
-    db.session.add(entry)
-    db.session.commit()
 
+    u = Customer.query.filter_by(email=email).all()
+    if(len(u) != 0):
+        flash("EMAIL ID IS ALREADY TAKEN!!!", "danger")
+        return redirect(url_for('loggedOut'))
+    if(validate_password(password)):
+        entry = Customer(name,password,email,gender)
+        db.session.add(entry)
+        db.session.commit()
+        flash("Registered Successfully","success")
+        return redirect(url_for('loggedOut'))
+    else:
+        flash("PASSWORD CRITERIA MUST BE SATISFIED!!!", "danger")
+        return redirect(url_for('loggedOut'))
     return redirect(url_for('loggedOut'))
 
 
