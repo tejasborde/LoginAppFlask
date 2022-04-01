@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, flash,redirect,url_for
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, current_user, login_required, logout_user
-
+import os
 app = Flask(__name__)
 
 # app.config['SQLALCHEMY_DATABASE_URI'] =  "postgresql://postgres:12345678@127.0.0.1:5432/loginapp"
